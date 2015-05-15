@@ -17,12 +17,17 @@ trait RandomUniformGenerator extends UniformGenerator
 // this is an implementation for testing the correctness of RandomValueGenerator
 trait SerialUniformGenerator extends UniformGenerator
 {
-   private val increment : Double = 0.01
-   private var currvalue : Double = -increment
+   private val numSteps : Int = 100
+   private val delta : Double = 1.0/numSteps
+   private var currPointer : Int  = numSteps-1
+   private val values = (0 to numSteps-1).map(_*delta)
    override def getNextUniformValue() : Double = {
-      currvalue += increment
-      if (currvalue>=1) currvalue=0.0
-      currvalue
+      currPointer+=1
+      if (currPointer>=numSteps) {
+         currPointer = 0
+      }
+      println (currPointer, values(currPointer))
+      values(currPointer)
    }
 }
 
@@ -35,9 +40,11 @@ class RandomValueGenerator[T](Distribution: List[(T,Double)]) extends UniformGen
    val accumDistribution : List[(T, Double)] = {
       Distribution.scanLeft((dummyElement,0.0))( (prev: (T, Double), curr: (T, Double)) => (curr._1, curr._2+prev._2)).tail
    }
+   println(accumDistribution)
 
    def getNext(): T = {
       val nextWeightValue : Double  = getNextUniformValue() *totalWeight
+      println("nextWeightValue : " + nextWeightValue.toString())
       // find the first element with accum prob >= weight, and return its value
       accumDistribution.filter(_._2>=nextWeightValue).head._1
    }
