@@ -5,47 +5,41 @@ package creator
  */
 
 trait UniformGenerator {
-   def getNextUniformValue() : Double
+   protected def maxValue : Int = 1000
+   def getNextUniformValue() : Int // returns values between 1 and maxValue, uniformly distributed
 }
 
 trait RandomUniformGenerator extends UniformGenerator
 {
    val rand = scala.util.Random
-   override def getNextUniformValue() : Double = rand.nextDouble()
+   override def getNextUniformValue() : Int = 1 + rand.nextInt(maxValue)
 }
 
 // this is an implementation for testing the correctness of RandomValueGenerator
 trait SerialUniformGenerator extends UniformGenerator
 {
-   private val numSteps : Int = 100
-   private val delta : Double = 1.0/numSteps
-   private var currPointer : Int  = numSteps-1
-   private val values = (0 to numSteps-1).map(_*delta)
-   override def getNextUniformValue() : Double = {
-      currPointer+=1
-      if (currPointer>=numSteps) {
-         currPointer = 0
+   private var currValue : Int  = 0
+   override def getNextUniformValue() : Int = {
+      currValue+=1
+      if (currValue>maxValue) {
+         currValue = 1
       }
-      println (currPointer, values(currPointer))
-      values(currPointer)
+      currValue
    }
 }
 
-class RandomValueGenerator[T](Distribution: List[(T,Double)]) extends UniformGenerator with RandomUniformGenerator {
+class RandomValueGenerator[T](Distribution: List[(T,Int)]) extends UniformGenerator with RandomUniformGenerator {
    // sum the weights
-   val totalWeight = Distribution.map(_._2).sum
-   //val (dummyElement, _) : (T, Double)  = Distribution.head
+   if (Distribution.map(_._2).sum!=maxValue) {throw new Exception("Total of weights must be " + maxValue.toString())}
    val dummyElement: T = null.asInstanceOf[T]
    // accumDistribution -> running cumulative weights, for easier selection
-   val accumDistribution : List[(T, Double)] = {
-      Distribution.scanLeft((dummyElement,0.0))( (prev: (T, Double), curr: (T, Double)) => (curr._1, curr._2+prev._2)).tail
+   val accumDistribution : List[(T, Int)] = {
+      Distribution.scanLeft((dummyElement,0))( (prev: (T, Int), curr: (T, Int)) => (curr._1, curr._2+prev._2)).tail
    }
-   println(accumDistribution)
 
    def getNext(): T = {
-      val nextWeightValue : Double  = getNextUniformValue() *totalWeight
-      println("nextWeightValue : " + nextWeightValue.toString())
-      // find the first element with accum prob >= weight, and return its value
+      val nextWeightValue : Int  = getNextUniformValue()
+      // find the first element with accum weight >= weight, and return its value
       accumDistribution.filter(_._2>=nextWeightValue).head._1
    }
    override def toString() = Distribution.mkString("<",",",">")
